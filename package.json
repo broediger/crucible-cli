@@ -1,0 +1,42 @@
+{
+  "name": "crucible-cli",
+  "version": "0.1.0",
+  "description": "The kubectl of Azure Service Bus — CLI for message operations, DLQ management, and namespace monitoring",
+  "type": "module",
+  "bin": {
+    "crucible": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/cli.js --banner:js=\"#!/usr/bin/env node\" --packages=external",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "azure",
+    "service-bus",
+    "servicebus",
+    "cli",
+    "dead-letter",
+    "dlq",
+    "messaging"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/identity": "^4.6.0",
+    "@azure/service-bus": "^7.9.0",
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
