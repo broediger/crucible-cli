@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { writeFile } from "node:fs/promises";
 import chalk from "chalk";
 import { createClients } from "../lib/client.js";
 import { parseEntity } from "../lib/entity.js";
@@ -10,6 +11,7 @@ export const replayCommand = new Command("replay")
   .option("--filter <expr>", 'Filter by DLQ reason (e.g., "reason=MaxDeliveryCountExceeded")')
   .option("--dry-run", "Show what would be replayed without doing it")
   .option("--to <entity>", "Replay to a different destination")
+  .option("--backup <file>", "Save messages to JSON file before replaying")
   .option("--namespace <fqdn>", "Override namespace")
   .action(
     async (
@@ -19,6 +21,7 @@ export const replayCommand = new Command("replay")
         filter?: string;
         dryRun?: boolean;
         to?: string;
+        backup?: string;
         namespace?: string;
       }
     ) => {
@@ -49,6 +52,30 @@ export const replayCommand = new Command("replay")
         if (opts.filter) {
           const match = opts.filter.match(/^reason=(.+)$/);
           if (match) filterReason = match[1];
+        }
+
+        // Backup before replay if requested
+        if (opts.backup) {
+          const backupData = messages.map((m) => ({
+            sequenceNumber: m.sequenceNumber?.toString(),
+            messageId: m.messageId,
+            correlationId: m.correlationId,
+            contentType: m.contentType,
+            subject: m.subject,
+            enqueuedTime: m.enqueuedTimeUtc?.toISOString(),
+            deadLetterReason: m.deadLetterReason,
+            deadLetterDescription: m.deadLetterErrorDescription,
+            applicationProperties: m.applicationProperties,
+            body: m.body,
+          }));
+          await writeFile(
+            opts.backup,
+            JSON.stringify(backupData, null, 2),
+            "utf-8"
+          );
+          console.log(
+            chalk.green(`Backed up ${backupData.length} messages to ${opts.backup}`)
+          );
         }
 
         let replayed = 0;
