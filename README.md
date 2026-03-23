@@ -73,7 +73,7 @@ crucible costs --optimize        # surface unused queues, DLQ issues
 
 # Local DLQ alerting
 crucible watch my-queue --dlq-threshold 10 --notify
-crucible watch my-queue --dlq-threshold 100 --exec "curl -X POST https://hooks.slack.com/..."
+crucible watch my-queue --dlq-threshold 100 --exec 'curl -X POST https://hooks.slack.com/... -d "{\"text\":\"DLQ alert: $CRUCIBLE_ENTITY has $CRUCIBLE_DLQ messages\"}"'
 ```
 
 ## Commands
