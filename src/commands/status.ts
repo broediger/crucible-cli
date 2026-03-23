@@ -51,7 +51,7 @@ async function fetchStatus(namespace?: string): Promise<EntityStatus[]> {
  * Convert a glob pattern (with * wildcards) to a case-insensitive RegExp.
  */
 function globToRegex(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  const escaped = pattern.replaceAll(/[.+^${}()|[\]\\]/g, String.raw`\$&`);
   const regexStr = escaped.replaceAll("*", ".*");
   return new RegExp(`^${regexStr}$`, "i");
 }
