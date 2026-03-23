@@ -49,16 +49,16 @@ async function fetchStatus(namespace?: string): Promise<EntityStatus[]> {
 
 function filterEntities(
   entities: EntityStatus[],
-  opts: { dlq?: boolean; dlqTopics?: boolean }
+  opts: { dlq?: boolean; dlqSubs?: boolean; dlqTopics?: boolean }
 ): EntityStatus[] {
   if (opts.dlq) {
     // Show only entities that have DLQ > 0
     return entities.filter((e) => e.dlq > 0);
   }
 
-  if (opts.dlqTopics) {
-    // Show only topics where at least one subscription has DLQ > 0,
-    // and include all subscriptions under those topics
+  if (opts.dlqSubs) {
+    // Show topics where any subscription has DLQ > 0,
+    // including all subscriptions under those topics for context
     const topicsWithDlq = new Set<string>();
     for (const e of entities) {
       if (e.topic && e.dlq > 0) {
@@ -66,11 +66,48 @@ function filterEntities(
       }
     }
     return entities.filter((e) => {
-      // Keep queues with DLQ
       if (e.type === "queue") return e.dlq > 0;
-      // Keep all subscriptions under topics that have any DLQ
       return e.topic !== undefined && topicsWithDlq.has(e.topic);
     });
+  }
+
+  if (opts.dlqTopics) {
+    // Show one row per topic that has any subscription with DLQ > 0 (aggregated)
+    const topicAgg = new Map<
+      string,
+      { active: number; dlq: number; scheduled: number }
+    >();
+    for (const e of entities) {
+      if (!e.topic) continue;
+      const agg = topicAgg.get(e.topic) || { active: 0, dlq: 0, scheduled: 0 };
+      agg.active += e.active;
+      agg.dlq += e.dlq;
+      agg.scheduled += e.scheduled;
+      topicAgg.set(e.topic, agg);
+    }
+
+    const result: EntityStatus[] = [];
+
+    // Queues with DLQ
+    for (const e of entities) {
+      if (e.type === "queue" && e.dlq > 0) result.push(e);
+    }
+
+    // Topics with aggregated DLQ > 0
+    for (const [topic, agg] of topicAgg) {
+      if (agg.dlq > 0) {
+        result.push({
+          type: "topic",
+          name: topic,
+          active: agg.active,
+          dlq: agg.dlq,
+          scheduled: agg.scheduled,
+          topic,
+        });
+      }
+    }
+
+    return result;
   }
 
   return entities;
@@ -120,8 +157,12 @@ export const statusCommand = new Command("status")
   .option("--sort <field>", "Sort by field: name, active, dlq, scheduled")
   .option("--dlq", "Show only entities with dead-letter messages")
   .option(
+    "--dlq-subs",
+    "Show topics with DLQ subscriptions, including all sibling subscriptions for context"
+  )
+  .option(
     "--dlq-topics",
-    "Show topics where any subscription has dead-letter messages (includes all subs under those topics)"
+    "Show one row per topic that has any DLQ (aggregated counts)"
   )
   .option("--watch [seconds]", "Auto-refresh every N seconds (default: 5)")
   .option("--namespace <fqdn>", "Override namespace")
@@ -130,6 +171,7 @@ export const statusCommand = new Command("status")
       json?: boolean;
       sort?: string;
       dlq?: boolean;
+      dlqSubs?: boolean;
       dlqTopics?: boolean;
       watch?: boolean | string;
       namespace?: string;
@@ -138,6 +180,7 @@ export const statusCommand = new Command("status")
         let entities = await fetchStatus(opts.namespace);
         entities = filterEntities(entities, {
           dlq: opts.dlq,
+          dlqSubs: opts.dlqSubs,
           dlqTopics: opts.dlqTopics,
         });
         sortEntities(entities, opts.sort);
@@ -161,9 +204,11 @@ export const statusCommand = new Command("status")
           const now = new Date().toLocaleTimeString();
           const filterLabel = opts.dlq
             ? " (DLQ only)"
-            : opts.dlqTopics
-              ? " (DLQ topics)"
-              : "";
+            : opts.dlqSubs
+              ? " (DLQ subs)"
+              : opts.dlqTopics
+                ? " (DLQ topics)"
+                : "";
           console.log(
             chalk.dim(
               `crucible status${filterLabel} — refreshing every ${interval}s — ${now}\n`
