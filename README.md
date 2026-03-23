@@ -1,5 +1,7 @@
 # Crucible CLI
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=broediger_crucible-cli&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=broediger_crucible-cli)
+
 The `kubectl` of Azure Service Bus — CLI for message operations, DLQ management, and namespace monitoring.
 
 ## Install
