@@ -34,7 +34,7 @@ export const deadletterCommand = new Command("deadletter")
           });
 
       try {
-        const messages = await receiver.peekMessages(parseInt(opts.count, 10));
+        const messages = await receiver.peekMessages(Number.parseInt(opts.count, 10));
 
         if (messages.length === 0) {
           console.log(chalk.green("No dead-letter messages"));

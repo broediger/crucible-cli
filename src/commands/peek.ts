@@ -34,7 +34,7 @@ export const peekCommand = new Command("peek")
           });
 
       try {
-        const messages = await receiver.peekMessages(parseInt(opts.count, 10));
+        const messages = await receiver.peekMessages(Number.parseInt(opts.count, 10));
 
         if (messages.length === 0) {
           console.log(chalk.dim("No messages found"));

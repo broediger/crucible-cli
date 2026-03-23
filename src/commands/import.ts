@@ -42,7 +42,7 @@ export const importCommand = new Command("import")
       const { client } = await createClients(opts.namespace);
       const { queue, topic } = parseEntity(entity);
       const sender = client.createSender(queue ?? topic!);
-      const delay = parseInt(opts.delay, 10);
+      const delay = Number.parseInt(opts.delay, 10);
 
       try {
         let sent = 0;

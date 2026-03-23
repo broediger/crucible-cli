@@ -43,7 +43,7 @@ export const replayCommand = new Command("replay")
       const sender = client.createSender(dest.queue ?? dest.topic!);
 
       try {
-        const maxCount = opts.count ? parseInt(opts.count, 10) : undefined;
+        const maxCount = opts.count ? Number.parseInt(opts.count, 10) : undefined;
         const messages = await receiver.receiveMessages(maxCount ?? 100, {
           maxWaitTimeInMs: 5000,
         });
