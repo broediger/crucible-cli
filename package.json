@@ -7,7 +7,7 @@
     "crucible": "./dist/cli.js"
   },
   "scripts": {
-    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/cli.js --banner:js=\"#!/usr/bin/env node\" --packages=external",
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/cli.js --banner:js=\"#!/usr/bin/env node\" --packages=external --jsx=automatic",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -30,10 +30,15 @@
     "@azure/service-bus": "^7.9.0",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
-    "commander": "^13.1.0"
+    "commander": "^13.1.0",
+    "ink": "^6.8.0",
+    "node-notifier": "^10.0.1",
+    "react": "^19.2.4"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",
+    "@types/node-notifier": "^8.0.5",
+    "@types/react": "^19.2.14",
     "esbuild": "^0.25.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
