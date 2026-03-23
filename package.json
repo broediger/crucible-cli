@@ -6,6 +6,11 @@
   "bin": {
     "crucible": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=dist/cli.js --banner:js=\"#!/usr/bin/env node\" --packages=external --jsx=automatic",
     "dev": "tsx src/cli.ts",
@@ -23,8 +28,19 @@
     "dlq",
     "messaging"
   ],
-  "author": "",
+  "author": "Björn Rödiger",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broediger/crucible-cli.git"
+  },
+  "homepage": "https://github.com/broediger/crucible-cli",
+  "bugs": {
+    "url": "https://github.com/broediger/crucible-cli/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@azure/identity": "^4.6.0",
     "@azure/service-bus": "^7.9.0",
