@@ -207,7 +207,7 @@ export const monitorCommand = new Command("monitor")
       namespace?: string;
     }) => {
       const { admin } = await createClients(opts.namespace);
-      const intervalMs = parseInt(opts.interval, 10) * 1000;
+      const intervalMs = Number.parseInt(opts.interval, 10) * 1000;
 
       render(
         <Dashboard

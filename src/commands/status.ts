@@ -104,7 +104,7 @@ export const statusCommand = new Command("status")
 
       if (opts.watch !== undefined && opts.watch !== false) {
         const interval =
-          typeof opts.watch === "string" ? parseInt(opts.watch, 10) : 5;
+          typeof opts.watch === "string" ? Number.parseInt(opts.watch, 10) : 5;
         const intervalMs = interval * 1000;
 
         // Run once, then loop

@@ -33,8 +33,8 @@ export const watchCommand = new Command("watch")
         process.exit(1);
       }
 
-      const threshold = parseInt(opts.dlqThreshold, 10);
-      const intervalMs = parseInt(opts.interval, 10) * 1000;
+      const threshold = Number.parseInt(opts.dlqThreshold, 10);
+      const intervalMs = Number.parseInt(opts.interval, 10) * 1000;
       const { admin } = await createClients(opts.namespace);
       const { queue, topic, subscription } = parseEntity(entity);
 

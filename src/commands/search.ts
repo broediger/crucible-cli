@@ -61,7 +61,7 @@ export const searchCommand = new Command("search")
       }
 
       try {
-        const scanCount = parseInt(opts.count, 10);
+        const scanCount = Number.parseInt(opts.count, 10);
         const messages = await receiver.peekMessages(scanCount);
 
         const matches = messages.filter((m) => {

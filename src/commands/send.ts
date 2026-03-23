@@ -61,8 +61,8 @@ export const sendCommand = new Command("send")
       const sender = client.createSender(queue ?? topic!);
 
       try {
-        const count = parseInt(opts.count, 10);
-        const delay = parseInt(opts.delay, 10);
+        const count = Number.parseInt(opts.count, 10);
+        const delay = Number.parseInt(opts.delay, 10);
 
         for (let i = 0; i < count; i++) {
           if (opts.schedule) {

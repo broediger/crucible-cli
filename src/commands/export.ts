@@ -35,7 +35,7 @@ export const exportCommand = new Command("export")
 
       try {
         const messages = await receiver.peekMessages(
-          parseInt(opts.count, 10)
+          Number.parseInt(opts.count, 10)
         );
 
         if (messages.length === 0) {
