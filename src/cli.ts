@@ -14,6 +14,9 @@ import { watchCommand } from "./commands/watch.js";
 import { exportCommand } from "./commands/export.js";
 import { importCommand } from "./commands/import.js";
 import { topologyCommand } from "./commands/topology.js";
+import { snapshotCommand } from "./commands/snapshot.js";
+import { diffCommand } from "./commands/diff.js";
+import { costsCommand } from "./commands/costs.js";
 
 const program = new Command();
 
@@ -24,10 +27,12 @@ program
   )
   .version("0.1.0");
 
+// --- Phase 1: Foundation ---
 program.addCommand(configCommand);
 program.addCommand(loginCommand);
+
+// --- Phase 2: Core Commands ---
 program.addCommand(statusCommand);
-program.addCommand(monitorCommand);
 program.addCommand(peekCommand);
 program.addCommand(inspectCommand);
 program.addCommand(searchCommand);
@@ -35,9 +40,25 @@ program.addCommand(deadletterCommand);
 program.addCommand(replayCommand);
 program.addCommand(purgeCommand);
 program.addCommand(sendCommand);
+
+// --- Phase 3: Monitoring & Advanced ---
+program.addCommand(monitorCommand);
 program.addCommand(watchCommand);
 program.addCommand(exportCommand);
 program.addCommand(importCommand);
 program.addCommand(topologyCommand);
+
+// --- Phase 4: Power Features ---
+program.addCommand(snapshotCommand);
+program.addCommand(diffCommand);
+program.addCommand(costsCommand);
+
+// --- Global error handler ---
+// Exit codes: 0 = success, 1 = error, 2 = warning/threshold (set by commands like diff)
+process.on("unhandledRejection", (err: unknown) => {
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error(`Error: ${msg}`);
+  process.exit(1);
+});
 
 program.parse();
