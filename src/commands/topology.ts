@@ -122,7 +122,7 @@ function renderMermaid(topo: Topology): void {
 }
 
 function sanitize(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_]/g, "_");
+  return name.replaceAll(/[^a-zA-Z0-9_]/g, "_");
 }
 
 export const topologyCommand = new Command("topology")

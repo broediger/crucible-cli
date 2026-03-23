@@ -74,9 +74,9 @@ export const watchCommand = new Command("watch")
             // Execute command
             if (opts.exec) {
               const cmd = opts.exec
-                .replace(/\{entity\}/g, entity)
-                .replace(/\{dlq\}/g, String(dlqCount))
-                .replace(/\{threshold\}/g, String(threshold));
+                .replaceAll("{entity}", entity)
+                .replaceAll("{dlq}", String(dlqCount))
+                .replaceAll("{threshold}", String(threshold));
 
               exec(cmd, (err, stdout, stderr) => {
                 if (err) {
