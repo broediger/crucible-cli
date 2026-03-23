@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import chalk from "chalk";
 import { createClients } from "../lib/client.js";
 import { parseEntity } from "../lib/entity.js";
@@ -11,7 +11,7 @@ export const watchCommand = new Command("watch")
     "--dlq-threshold <number>",
     "DLQ count threshold to trigger alert"
   )
-  .option("--exec <command>", "Shell command to execute when threshold is crossed")
+  .option("--exec <command>", "Shell command to execute when threshold is crossed (use $CRUCIBLE_ENTITY, $CRUCIBLE_DLQ, $CRUCIBLE_THRESHOLD)")
   .option("--notify", "Send desktop notification when threshold is crossed")
   .option("--interval <seconds>", "Poll interval in seconds", "30")
   .option("--namespace <fqdn>", "Override namespace")
@@ -71,14 +71,16 @@ export const watchCommand = new Command("watch")
               )
             );
 
-            // Execute command
+            // Execute command — values passed via env vars to prevent shell injection
             if (opts.exec) {
-              const cmd = opts.exec
-                .replaceAll("{entity}", entity)
-                .replaceAll("{dlq}", String(dlqCount))
-                .replaceAll("{threshold}", String(threshold));
-
-              exec(cmd, (err, stdout, stderr) => {
+              execFile("/bin/sh", ["-c", opts.exec], {
+                env: {
+                  ...process.env,
+                  CRUCIBLE_ENTITY: entity,
+                  CRUCIBLE_DLQ: String(dlqCount),
+                  CRUCIBLE_THRESHOLD: String(threshold),
+                },
+              }, (err, stdout, stderr) => {
                 if (err) {
                   console.error(
                     chalk.red(`exec failed: ${err.message}`)
