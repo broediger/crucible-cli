@@ -24,9 +24,14 @@ crucible login --tenant <tenant-id>
 crucible status
 crucible status --watch          # auto-refresh every 5s
 crucible status --sort dlq       # surface problems first
+crucible status --dlq            # only entities with dead-letters
+crucible status --dlq-subs       # topics with DLQ subs (shows all sibling subs)
+crucible status --dlq-topics     # one row per topic with DLQ (aggregated)
 
 # Live TUI dashboard
 crucible monitor                 # htop-style, press q to quit
+crucible monitor --entity orders # filter to matching entities
+crucible monitor --interval 10   # poll every 10s
 
 # Browse messages
 crucible peek my-queue
@@ -81,7 +86,7 @@ crucible watch my-queue --dlq-threshold 100 --exec "curl -X POST https://hooks.s
 ### Core Operations
 | Command | Description |
 |---|---|
-| `crucible status` | Health overview — queues, topics, DLQ counts, `--watch`, `--sort`, `--json` |
+| `crucible status` | Health overview — `--dlq`, `--dlq-subs`, `--dlq-topics`, `--watch`, `--sort`, `--json` |
 | `crucible peek` | Peek messages — `--dlq`, `--count`, `--format json\|table` |
 | `crucible inspect` | Inspect single message by `--seq` sequence number |
 | `crucible search` | Search by `--body` text or `--property` key=value |
@@ -93,7 +98,7 @@ crucible watch my-queue --dlq-threshold 100 --exec "curl -X POST https://hooks.s
 ### Monitoring & Advanced
 | Command | Description |
 |---|---|
-| `crucible monitor` | Live TUI dashboard (ink) — real-time counts, DLQ trend indicators |
+| `crucible monitor` | Live TUI dashboard (ink) — real-time counts, DLQ trends, `--entity`, `--interval` |
 | `crucible watch` | Local DLQ alerts — `--dlq-threshold`, `--exec`, `--notify` |
 | `crucible export` | Export messages as JSON or CSV (pipe-friendly) |
 | `crucible import` | Bulk send from JSON file |
