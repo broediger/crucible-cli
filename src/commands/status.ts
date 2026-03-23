@@ -72,18 +72,8 @@ function filterEntities(
   }
 
   if (opts.dlqSubs) {
-    // Show topics where any subscription has DLQ > 0,
-    // including all subscriptions under those topics for context
-    const topicsWithDlq = new Set<string>();
-    for (const e of entities) {
-      if (e.topic && e.dlq > 0) {
-        topicsWithDlq.add(e.topic);
-      }
-    }
-    return entities.filter((e) => {
-      if (e.type === "queue") return e.dlq > 0;
-      return e.topic !== undefined && topicsWithDlq.has(e.topic);
-    });
+    // Show topics and their subscriptions that have DLQ > 0
+    return entities.filter((e) => e.type === "topic/sub" && e.dlq > 0);
   }
 
   if (opts.dlqTopics) {
