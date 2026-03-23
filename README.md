@@ -27,6 +27,7 @@ crucible status --sort dlq       # surface problems first
 crucible status --dlq            # only entities with dead-letters
 crucible status --dlq-subs       # topics with DLQ subs (shows all sibling subs)
 crucible status --dlq-topics     # one row per topic with DLQ (aggregated)
+crucible status --filter "*dev*" # glob filter on entity name
 
 # Live TUI dashboard
 crucible monitor                 # htop-style, press q to quit
@@ -86,7 +87,7 @@ crucible watch my-queue --dlq-threshold 100 --exec "curl -X POST https://hooks.s
 ### Core Operations
 | Command | Description |
 |---|---|
-| `crucible status` | Health overview — `--dlq`, `--dlq-subs`, `--dlq-topics`, `--watch`, `--sort`, `--json` |
+| `crucible status` | Health overview — `--filter`, `--dlq`, `--dlq-subs`, `--dlq-topics`, `--watch`, `--sort`, `--json` |
 | `crucible peek` | Peek messages — `--dlq`, `--count`, `--format json\|table` |
 | `crucible inspect` | Inspect single message by `--seq` sequence number |
 | `crucible search` | Search by `--body` text or `--property` key=value |

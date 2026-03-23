@@ -47,10 +47,25 @@ async function fetchStatus(namespace?: string): Promise<EntityStatus[]> {
   return entities;
 }
 
+/**
+ * Convert a glob pattern (with * wildcards) to a case-insensitive RegExp.
+ */
+function globToRegex(pattern: string): RegExp {
+  const escaped = pattern.replaceAll(/[.+^${}()|[\]\\]/g, String.raw`\$&`);
+  const regexStr = escaped.replaceAll("*", ".*");
+  return new RegExp(`^${regexStr}$`, "i");
+}
+
 function filterEntities(
   entities: EntityStatus[],
-  opts: { dlq?: boolean; dlqSubs?: boolean; dlqTopics?: boolean }
+  opts: { filter?: string; dlq?: boolean; dlqSubs?: boolean; dlqTopics?: boolean }
 ): EntityStatus[] {
+  // Name filter (glob wildcards) — applied first
+  if (opts.filter) {
+    const regex = globToRegex(opts.filter);
+    entities = entities.filter((e) => regex.test(e.name));
+  }
+
   if (opts.dlq) {
     // Show only entities that have DLQ > 0
     return entities.filter((e) => e.dlq > 0);
@@ -155,6 +170,7 @@ export const statusCommand = new Command("status")
   .description("Show queue/topic health overview")
   .option("--json", "Output as JSON")
   .option("--sort <field>", "Sort by field: name, active, dlq, scheduled")
+  .option("--filter <pattern>", "Filter entities by name (glob wildcards, e.g. \"*dev*\")")
   .option("--dlq", "Show only entities with dead-letter messages")
   .option(
     "--dlq-subs",
@@ -170,6 +186,7 @@ export const statusCommand = new Command("status")
     async (opts: {
       json?: boolean;
       sort?: string;
+      filter?: string;
       dlq?: boolean;
       dlqSubs?: boolean;
       dlqTopics?: boolean;
@@ -179,6 +196,7 @@ export const statusCommand = new Command("status")
       const run = async () => {
         let entities = await fetchStatus(opts.namespace);
         entities = filterEntities(entities, {
+          filter: opts.filter,
           dlq: opts.dlq,
           dlqSubs: opts.dlqSubs,
           dlqTopics: opts.dlqTopics,
