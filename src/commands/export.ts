@@ -91,7 +91,7 @@ export const exportCommand = new Command("export")
                 .map((f) => {
                   const s = String(f ?? "");
                   return s.includes(",") || s.includes('"') || s.includes("\n")
-                    ? `"${s.replace(/"/g, '""')}"`
+                    ? `"${s.replaceAll('"', '""')}"`
                     : s;
                 })
                 .join(",")
