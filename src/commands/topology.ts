@@ -111,56 +111,58 @@ async function fetchTopology(namespace?: string, includeRules?: boolean): Promis
   return { queues, topics };
 }
 
+/** Return the tree branch/continuation prefixes for an item in a list. */
+function treePrefixes(
+  parent: string,
+  index: number,
+  total: number
+): { prefix: string; cont: string } {
+  const isLast = index === total - 1;
+  return {
+    prefix: isLast ? `${parent}└─` : `${parent}├─`,
+    cont: isLast ? `${parent}  ` : `${parent}│ `,
+  };
+}
+
+function renderRulesTree(rules: RuleInfo[], cont: string, showFilter: boolean): void {
+  for (let ri = 0; ri < rules.length; ri++) {
+    const rule = rules[ri];
+    const r = treePrefixes(cont, ri, rules.length);
+    console.log(`${r.prefix} ${chalk.dim(rule.name)}`);
+    if (showFilter && rule.filter) {
+      console.log(`${r.cont}${chalk.gray("→")} ${chalk.blue(rule.filter)}`);
+    }
+  }
+}
+
+function renderSubscriptionsTree(
+  subs: SubInfo[],
+  cont: string,
+  showRules: boolean
+): void {
+  for (let si = 0; si < subs.length; si++) {
+    const s = treePrefixes(cont, si, subs.length);
+    console.log(`${s.prefix} ${chalk.yellow(subs[si].name)}`);
+    renderRulesTree(subs[si].rules, s.cont, showRules);
+  }
+}
+
 function renderTree(topo: Topology, showRules: boolean): void {
-  // Queues
   if (topo.queues.length > 0) {
     console.log(chalk.bold("Queues"));
     for (let i = 0; i < topo.queues.length; i++) {
-      const isLast = i === topo.queues.length - 1;
-      const prefix = isLast ? "  └─" : "  ├─";
-      console.log(`${prefix} ${chalk.cyan(topo.queues[i].name)}`);
+      const q = treePrefixes("  ", i, topo.queues.length);
+      console.log(`${q.prefix} ${chalk.cyan(topo.queues[i].name)}`);
     }
     console.log();
   }
 
-  // Topics
   if (topo.topics.length > 0) {
     console.log(chalk.bold("Topics"));
     for (let ti = 0; ti < topo.topics.length; ti++) {
-      const t = topo.topics[ti];
-      const tLast = ti === topo.topics.length - 1;
-      const tPrefix = tLast ? "  └─" : "  ├─";
-      const tCont = tLast ? "    " : "  │ ";
-
-      console.log(`${tPrefix} ${chalk.magenta(t.name)}`);
-
-      for (let si = 0; si < t.subscriptions.length; si++) {
-        const s = t.subscriptions[si];
-        const sLast = si === t.subscriptions.length - 1;
-        const sPrefix = sLast ? `${tCont}└─` : `${tCont}├─`;
-        const sCont = sLast ? `${tCont}  ` : `${tCont}│ `;
-
-        console.log(`${sPrefix} ${chalk.yellow(s.name)}`);
-
-        if (showRules) {
-          for (let ri = 0; ri < s.rules.length; ri++) {
-            const rule = s.rules[ri];
-            const rLast = ri === s.rules.length - 1;
-            const rPrefix = rLast ? `${sCont}└─` : `${sCont}├─`;
-            const rCont = rLast ? `${sCont}  ` : `${sCont}│ `;
-            console.log(`${rPrefix} ${chalk.dim(rule.name)}`);
-            if (rule.filter) {
-              console.log(`${rCont}${chalk.gray("→")} ${chalk.blue(rule.filter)}`);
-            }
-          }
-        } else {
-          for (let ri = 0; ri < s.rules.length; ri++) {
-            const rLast = ri === s.rules.length - 1;
-            const rPrefix = rLast ? `${sCont}└─` : `${sCont}├─`;
-            console.log(`${rPrefix} ${chalk.dim(s.rules[ri].name)}`);
-          }
-        }
-      }
+      const t = treePrefixes("  ", ti, topo.topics.length);
+      console.log(`${t.prefix} ${chalk.magenta(topo.topics[ti].name)}`);
+      renderSubscriptionsTree(topo.topics[ti].subscriptions, t.cont, showRules);
     }
   }
 
@@ -169,16 +171,22 @@ function renderTree(topo: Topology, showRules: boolean): void {
   }
 }
 
+function getRuleLabel(rule: RuleInfo, showFilter: boolean): string | null {
+  if (showFilter) {
+    if (rule.name === "$Default" && (!rule.filter || rule.filter === "TrueFilter")) return null;
+    return rule.filter || rule.name;
+  }
+  if (rule.name === "$Default") return null;
+  return rule.name;
+}
+
 function renderMermaid(topo: Topology, showRules: boolean): void {
   const lines: string[] = ["graph LR"];
 
-  // Queues
   for (const q of topo.queues) {
-    const id = sanitize(q.name);
-    lines.push(`  ${id}[["${q.name} (queue)"]]`);
+    lines.push(`  ${sanitize(q.name)}[["${q.name} (queue)"]]`);
   }
 
-  // Topics → Subscriptions → Rules
   for (const t of topo.topics) {
     const tid = sanitize(t.name);
     lines.push(`  ${tid}(("${t.name}"))`);
@@ -187,19 +195,11 @@ function renderMermaid(topo: Topology, showRules: boolean): void {
       const sid = sanitize(`${t.name}_${s.name}`);
       lines.push(`  ${tid} --> ${sid}["${s.name}"]`);
 
-      if (showRules) {
-        for (const r of s.rules) {
-          if (r.name === "$Default" && (!r.filter || r.filter === "TrueFilter")) continue;
-          const rid = sanitize(`${t.name}_${s.name}_${r.name}`);
-          const label = r.filter || r.name;
-          lines.push(`  ${sid} -. "${label}" .-> ${rid}((filter))`);
-        }
-      } else {
-        for (const r of s.rules) {
-          if (r.name === "$Default") continue;
-          const rid = sanitize(`${t.name}_${s.name}_${r.name}`);
-          lines.push(`  ${sid} -. "${r.name}" .-> ${rid}((filter))`);
-        }
+      for (const r of s.rules) {
+        const label = getRuleLabel(r, showRules);
+        if (!label) continue;
+        const rid = sanitize(`${t.name}_${s.name}_${r.name}`);
+        lines.push(`  ${sid} -. "${label}" .-> ${rid}((filter))`);
       }
     }
   }
