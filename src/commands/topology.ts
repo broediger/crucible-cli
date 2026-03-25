@@ -2,9 +2,14 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { createClients } from "../lib/client.js";
 
+interface RuleInfo {
+  name: string;
+  filter?: string;
+}
+
 interface SubInfo {
   name: string;
-  rules: string[];
+  rules: RuleInfo[];
 }
 
 interface TopicInfo {
@@ -21,7 +26,37 @@ interface Topology {
   topics: TopicInfo[];
 }
 
-async function fetchTopology(namespace?: string): Promise<Topology> {
+function formatFilter(rule: { filter?: unknown }): string {
+  const f = rule.filter as Record<string, unknown> | undefined;
+  if (!f) return "";
+
+  // SqlFilter
+  if (f.sqlExpression) {
+    const expr = String(f.sqlExpression);
+    return expr === "1=1" ? "TrueFilter" : expr;
+  }
+
+  // CorrelationFilter
+  if (f.correlationId || f.label || f.contentType || f.properties) {
+    const parts: string[] = [];
+    if (f.correlationId) parts.push(`correlationId=${f.correlationId}`);
+    if (f.messageId) parts.push(`messageId=${f.messageId}`);
+    if (f.to) parts.push(`to=${f.to}`);
+    if (f.replyTo) parts.push(`replyTo=${f.replyTo}`);
+    if (f.label) parts.push(`label=${f.label}`);
+    if (f.sessionId) parts.push(`sessionId=${f.sessionId}`);
+    if (f.contentType) parts.push(`contentType=${f.contentType}`);
+    const props = (f.properties || f.applicationProperties || {}) as Record<string, unknown>;
+    for (const [k, v] of Object.entries(props)) {
+      parts.push(`${k}=${v}`);
+    }
+    return parts.length > 0 ? parts.join(", ") : "CorrelationFilter";
+  }
+
+  return "";
+}
+
+async function fetchTopology(namespace?: string, includeRules?: boolean): Promise<Topology> {
   const { admin } = await createClients(namespace);
   const queues: QueueInfo[] = [];
   const topics: TopicInfo[] = [];
@@ -34,9 +69,13 @@ async function fetchTopology(namespace?: string): Promise<Topology> {
     const subs: SubInfo[] = [];
 
     for await (const s of admin.listSubscriptions(t.name)) {
-      const rules: string[] = [];
+      const rules: RuleInfo[] = [];
       for await (const r of admin.listRules(t.name, s.subscriptionName)) {
-        rules.push(r.name);
+        if (includeRules) {
+          rules.push({ name: r.name, filter: formatFilter(r) });
+        } else {
+          rules.push({ name: r.name });
+        }
       }
       subs.push({ name: s.subscriptionName, rules });
     }
@@ -47,7 +86,7 @@ async function fetchTopology(namespace?: string): Promise<Topology> {
   return { queues, topics };
 }
 
-function renderTree(topo: Topology): void {
+function renderTree(topo: Topology, showRules: boolean): void {
   // Queues
   if (topo.queues.length > 0) {
     console.log(chalk.bold("Queues"));
@@ -78,10 +117,23 @@ function renderTree(topo: Topology): void {
 
         console.log(`${sPrefix} ${chalk.yellow(s.name)}`);
 
-        for (let ri = 0; ri < s.rules.length; ri++) {
-          const rLast = ri === s.rules.length - 1;
-          const rPrefix = rLast ? `${sCont}└─` : `${sCont}├─`;
-          console.log(`${rPrefix} ${chalk.dim(s.rules[ri])}`);
+        if (showRules) {
+          for (let ri = 0; ri < s.rules.length; ri++) {
+            const rule = s.rules[ri];
+            const rLast = ri === s.rules.length - 1;
+            const rPrefix = rLast ? `${sCont}└─` : `${sCont}├─`;
+            const rCont = rLast ? `${sCont}  ` : `${sCont}│ `;
+            console.log(`${rPrefix} ${chalk.dim(rule.name)}`);
+            if (rule.filter) {
+              console.log(`${rCont}${chalk.gray("→")} ${chalk.blue(rule.filter)}`);
+            }
+          }
+        } else {
+          for (let ri = 0; ri < s.rules.length; ri++) {
+            const rLast = ri === s.rules.length - 1;
+            const rPrefix = rLast ? `${sCont}└─` : `${sCont}├─`;
+            console.log(`${rPrefix} ${chalk.dim(s.rules[ri].name)}`);
+          }
         }
       }
     }
@@ -92,7 +144,7 @@ function renderTree(topo: Topology): void {
   }
 }
 
-function renderMermaid(topo: Topology): void {
+function renderMermaid(topo: Topology, showRules: boolean): void {
   const lines: string[] = ["graph LR"];
 
   // Queues
@@ -110,10 +162,19 @@ function renderMermaid(topo: Topology): void {
       const sid = sanitize(`${t.name}_${s.name}`);
       lines.push(`  ${tid} --> ${sid}["${s.name}"]`);
 
-      for (const r of s.rules) {
-        if (r === "$Default") continue;
-        const rid = sanitize(`${t.name}_${s.name}_${r}`);
-        lines.push(`  ${sid} -. "${r}" .-> ${rid}((filter))`);
+      if (showRules) {
+        for (const r of s.rules) {
+          if (r.name === "$Default" && (!r.filter || r.filter === "TrueFilter")) continue;
+          const rid = sanitize(`${t.name}_${s.name}_${r.name}`);
+          const label = r.filter || r.name;
+          lines.push(`  ${sid} -. "${label}" .-> ${rid}((filter))`);
+        }
+      } else {
+        for (const r of s.rules) {
+          if (r.name === "$Default") continue;
+          const rid = sanitize(`${t.name}_${s.name}_${r.name}`);
+          lines.push(`  ${sid} -. "${r.name}" .-> ${rid}((filter))`);
+        }
       }
     }
   }
@@ -130,20 +191,21 @@ export const topologyCommand = new Command("topology")
     "Show namespace topology (queues, topics, subscriptions, rules)"
   )
   .option("--format <type>", "Output format: tree, json, mermaid", "tree")
+  .option("--rules", "Show filter expressions for each subscription rule")
   .option("--namespace <fqdn>", "Override namespace")
   .action(
-    async (opts: { format: string; namespace?: string }) => {
-      const topo = await fetchTopology(opts.namespace);
+    async (opts: { format: string; rules?: boolean; namespace?: string }) => {
+      const topo = await fetchTopology(opts.namespace, opts.rules);
 
       switch (opts.format) {
         case "json":
           console.log(JSON.stringify(topo, null, 2));
           break;
         case "mermaid":
-          renderMermaid(topo);
+          renderMermaid(topo, !!opts.rules);
           break;
         default:
-          renderTree(topo);
+          renderTree(topo, !!opts.rules);
           break;
       }
     }
