@@ -51,32 +51,33 @@ function isCorrelationFilter(f: unknown): f is CorrelationRuleFilter {
     ("correlationId" in f || "label" in f || "contentType" in f || "properties" in f);
 }
 
+const CORRELATION_FIELDS: (keyof CorrelationRuleFilter)[] = [
+  "correlationId", "messageId", "to", "replyTo",
+  "label", "sessionId", "contentType",
+];
+
+function formatSqlFilter(f: SqlRuleFilter): string {
+  return f.sqlExpression === "1=1" ? "TrueFilter" : f.sqlExpression;
+}
+
+function formatCorrelationFilter(f: CorrelationRuleFilter): string {
+  const parts: string[] = CORRELATION_FIELDS
+    .filter((k) => f[k])
+    .map((k) => `${k}=${f[k]}`);
+
+  const props = f.properties || f.applicationProperties || {};
+  for (const [k, v] of Object.entries(props)) {
+    parts.push(`${k}=${v}`);
+  }
+
+  return parts.length > 0 ? parts.join(", ") : "CorrelationFilter";
+}
+
 function formatFilter(rule: { filter?: unknown }): string {
   const f = rule.filter;
   if (!f) return "";
-
-  // SqlFilter
-  if (isSqlFilter(f)) {
-    return f.sqlExpression === "1=1" ? "TrueFilter" : f.sqlExpression;
-  }
-
-  // CorrelationFilter
-  if (isCorrelationFilter(f)) {
-    const parts: string[] = [];
-    if (f.correlationId) parts.push(`correlationId=${f.correlationId}`);
-    if (f.messageId) parts.push(`messageId=${f.messageId}`);
-    if (f.to) parts.push(`to=${f.to}`);
-    if (f.replyTo) parts.push(`replyTo=${f.replyTo}`);
-    if (f.label) parts.push(`label=${f.label}`);
-    if (f.sessionId) parts.push(`sessionId=${f.sessionId}`);
-    if (f.contentType) parts.push(`contentType=${f.contentType}`);
-    const props = f.properties || f.applicationProperties || {};
-    for (const [k, v] of Object.entries(props)) {
-      parts.push(`${k}=${v}`);
-    }
-    return parts.length > 0 ? parts.join(", ") : "CorrelationFilter";
-  }
-
+  if (isSqlFilter(f)) return formatSqlFilter(f);
+  if (isCorrelationFilter(f)) return formatCorrelationFilter(f);
   return "";
 }
 
