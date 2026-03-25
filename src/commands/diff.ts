@@ -17,77 +17,88 @@ interface DiffEntry {
   after?: unknown;
 }
 
+interface Named {
+  name: string;
+}
+
+/**
+ * Generic diff for named entities. Detects added, removed, and changed items.
+ * @param prefix   - path prefix for diff entries (e.g. "queue" or "topic/orders")
+ * @param before   - entities in the baseline
+ * @param after    - entities in the current state
+ * @param keyFn    - extract the map key from an entity
+ * @param compareFn - produce diff entries for two matched entities (optional)
+ */
+function diffNamedEntities<T extends Named>(
+  prefix: string,
+  before: T[],
+  after: T[],
+  keyFn: (item: T) => string,
+  compareFn?: (path: string, b: T, a: T) => DiffEntry[]
+): DiffEntry[] {
+  const diffs: DiffEntry[] = [];
+  const beforeMap = new Map(before.map((item) => [keyFn(item), item]));
+  const afterMap = new Map(after.map((item) => [keyFn(item), item]));
+
+  for (const name of afterMap.keys()) {
+    if (!beforeMap.has(name)) {
+      diffs.push({ type: "added", path: `${prefix}/${name}` });
+    }
+  }
+
+  for (const [name, b] of beforeMap) {
+    const a = afterMap.get(name);
+    if (!a) {
+      diffs.push({ type: "removed", path: `${prefix}/${name}` });
+    } else if (compareFn) {
+      diffs.push(...compareFn(`${prefix}/${name}`, b, a));
+    }
+  }
+
+  return diffs;
+}
+
+/** Compare all own properties of two objects (skipping listed keys). */
+function diffProperties(
+  path: string,
+  before: object,
+  after: object,
+  skip: string[]
+): DiffEntry[] {
+  const diffs: DiffEntry[] = [];
+  const b = before as Record<string, unknown>;
+  const a = after as Record<string, unknown>;
+  for (const key of Object.keys(b)) {
+    if (skip.includes(key)) continue;
+    if (JSON.stringify(b[key]) !== JSON.stringify(a[key])) {
+      diffs.push({
+        type: "changed",
+        path: `${path}.${key}`,
+        before: b[key],
+        after: a[key],
+      });
+    }
+  }
+  return diffs;
+}
+
 function diffQueues(
   before: QueueSnapshot[],
   after: QueueSnapshot[]
 ): DiffEntry[] {
-  const diffs: DiffEntry[] = [];
-  const beforeMap = new Map(before.map((q) => [q.name, q]));
-  const afterMap = new Map(after.map((q) => [q.name, q]));
-
-  for (const [name, q] of afterMap) {
-    if (!beforeMap.has(name)) {
-      diffs.push({ type: "added", path: `queue/${name}` });
-    }
-  }
-  for (const [name, q] of beforeMap) {
-    if (!afterMap.has(name)) {
-      diffs.push({ type: "removed", path: `queue/${name}` });
-    } else {
-      const a = afterMap.get(name)!;
-      for (const key of Object.keys(q) as Array<keyof QueueSnapshot>) {
-        if (key === "name") continue;
-        if (JSON.stringify(q[key]) !== JSON.stringify(a[key])) {
-          diffs.push({
-            type: "changed",
-            path: `queue/${name}.${key}`,
-            before: q[key],
-            after: a[key],
-          });
-        }
-      }
-    }
-  }
-  return diffs;
+  return diffNamedEntities("queue", before, after, (q) => q.name, (path, b, a) =>
+    diffProperties(path, b, a, ["name"])
+  );
 }
 
 function diffTopics(
   before: TopicSnapshot[],
   after: TopicSnapshot[]
 ): DiffEntry[] {
-  const diffs: DiffEntry[] = [];
-  const beforeMap = new Map(before.map((t) => [t.name, t]));
-  const afterMap = new Map(after.map((t) => [t.name, t]));
-
-  for (const [name] of afterMap) {
-    if (!beforeMap.has(name)) {
-      diffs.push({ type: "added", path: `topic/${name}` });
-    }
-  }
-  for (const [name, t] of beforeMap) {
-    if (!afterMap.has(name)) {
-      diffs.push({ type: "removed", path: `topic/${name}` });
-      continue;
-    }
-    const a = afterMap.get(name)!;
-
-    // Topic-level config
-    for (const key of Object.keys(t) as Array<keyof TopicSnapshot>) {
-      if (key === "name" || key === "subscriptions") continue;
-      if (JSON.stringify(t[key]) !== JSON.stringify(a[key])) {
-        diffs.push({
-          type: "changed",
-          path: `topic/${name}.${key}`,
-          before: t[key],
-          after: a[key],
-        });
-      }
-    }
-
-    // Subscriptions
-    diffs.push(...diffSubscriptions(name, t.subscriptions, a.subscriptions));
-  }
-  return diffs;
+  return diffNamedEntities("topic", before, after, (t) => t.name, (path, b, a) => [
+    ...diffProperties(path, b, a, ["name", "subscriptions"]),
+    ...diffSubscriptions(b.name, b.subscriptions, a.subscriptions),
+  ]);
 }
 
 function diffSubscriptions(
@@ -95,38 +106,16 @@ function diffSubscriptions(
   before: SubscriptionSnapshot[],
   after: SubscriptionSnapshot[]
 ): DiffEntry[] {
-  const diffs: DiffEntry[] = [];
-  const beforeMap = new Map(before.map((s) => [s.name, s]));
-  const afterMap = new Map(after.map((s) => [s.name, s]));
-
-  for (const [name] of afterMap) {
-    if (!beforeMap.has(name)) {
-      diffs.push({ type: "added", path: `topic/${topicName}/${name}` });
-    }
-  }
-  for (const [name, s] of beforeMap) {
-    if (!afterMap.has(name)) {
-      diffs.push({ type: "removed", path: `topic/${topicName}/${name}` });
-      continue;
-    }
-    const a = afterMap.get(name)!;
-
-    for (const key of Object.keys(s) as Array<keyof SubscriptionSnapshot>) {
-      if (key === "name" || key === "rules") continue;
-      if (JSON.stringify(s[key]) !== JSON.stringify(a[key])) {
-        diffs.push({
-          type: "changed",
-          path: `topic/${topicName}/${name}.${key}`,
-          before: s[key],
-          after: a[key],
-        });
-      }
-    }
-
-    // Rules
-    diffs.push(...diffRules(topicName, name, s.rules, a.rules));
-  }
-  return diffs;
+  return diffNamedEntities(
+    `topic/${topicName}`,
+    before,
+    after,
+    (s) => s.name,
+    (path, b, a) => [
+      ...diffProperties(path, b, a, ["name", "rules"]),
+      ...diffRules(topicName, b.name, b.rules, a.rules),
+    ]
+  );
 }
 
 function diffRules(
@@ -135,40 +124,13 @@ function diffRules(
   before: RuleSnapshot[],
   after: RuleSnapshot[]
 ): DiffEntry[] {
-  const diffs: DiffEntry[] = [];
-  const prefix = `topic/${topicName}/${subName}/rule`;
-  const beforeMap = new Map(before.map((r) => [r.name, r]));
-  const afterMap = new Map(after.map((r) => [r.name, r]));
-
-  for (const [name] of afterMap) {
-    if (!beforeMap.has(name)) {
-      diffs.push({ type: "added", path: `${prefix}/${name}` });
-    }
-  }
-  for (const [name, r] of beforeMap) {
-    if (!afterMap.has(name)) {
-      diffs.push({ type: "removed", path: `${prefix}/${name}` });
-    } else {
-      const a = afterMap.get(name)!;
-      if (JSON.stringify(r.filter) !== JSON.stringify(a.filter)) {
-        diffs.push({
-          type: "changed",
-          path: `${prefix}/${name}.filter`,
-          before: r.filter,
-          after: a.filter,
-        });
-      }
-      if (JSON.stringify(r.action) !== JSON.stringify(a.action)) {
-        diffs.push({
-          type: "changed",
-          path: `${prefix}/${name}.action`,
-          before: r.action,
-          after: a.action,
-        });
-      }
-    }
-  }
-  return diffs;
+  return diffNamedEntities(
+    `topic/${topicName}/${subName}/rule`,
+    before,
+    after,
+    (r) => r.name,
+    (path, b, a) => diffProperties(path, b, a, ["name"])
+  );
 }
 
 function renderDiffs(diffs: DiffEntry[], json?: boolean): void {
