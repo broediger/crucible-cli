@@ -26,18 +26,42 @@ interface Topology {
   topics: TopicInfo[];
 }
 
+interface SqlRuleFilter {
+  sqlExpression: string;
+}
+
+interface CorrelationRuleFilter {
+  correlationId?: string;
+  messageId?: string;
+  to?: string;
+  replyTo?: string;
+  label?: string;
+  sessionId?: string;
+  contentType?: string;
+  properties?: Record<string, unknown>;
+  applicationProperties?: Record<string, unknown>;
+}
+
+function isSqlFilter(f: unknown): f is SqlRuleFilter {
+  return typeof f === "object" && f !== null && "sqlExpression" in f;
+}
+
+function isCorrelationFilter(f: unknown): f is CorrelationRuleFilter {
+  return typeof f === "object" && f !== null &&
+    ("correlationId" in f || "label" in f || "contentType" in f || "properties" in f);
+}
+
 function formatFilter(rule: { filter?: unknown }): string {
-  const f = rule.filter as Record<string, unknown> | undefined;
+  const f = rule.filter;
   if (!f) return "";
 
   // SqlFilter
-  if (f.sqlExpression) {
-    const expr = String(f.sqlExpression);
-    return expr === "1=1" ? "TrueFilter" : expr;
+  if (isSqlFilter(f)) {
+    return f.sqlExpression === "1=1" ? "TrueFilter" : f.sqlExpression;
   }
 
   // CorrelationFilter
-  if (f.correlationId || f.label || f.contentType || f.properties) {
+  if (isCorrelationFilter(f)) {
     const parts: string[] = [];
     if (f.correlationId) parts.push(`correlationId=${f.correlationId}`);
     if (f.messageId) parts.push(`messageId=${f.messageId}`);
@@ -46,7 +70,7 @@ function formatFilter(rule: { filter?: unknown }): string {
     if (f.label) parts.push(`label=${f.label}`);
     if (f.sessionId) parts.push(`sessionId=${f.sessionId}`);
     if (f.contentType) parts.push(`contentType=${f.contentType}`);
-    const props = (f.properties || f.applicationProperties || {}) as Record<string, unknown>;
+    const props = f.properties || f.applicationProperties || {};
     for (const [k, v] of Object.entries(props)) {
       parts.push(`${k}=${v}`);
     }
