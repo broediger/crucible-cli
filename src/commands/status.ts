@@ -58,7 +58,12 @@ function globToRegex(pattern: string): RegExp {
 
 function filterEntities(
   entities: EntityStatus[],
-  opts: { filter?: string; dlq?: boolean; dlqSubs?: boolean; dlqTopics?: boolean }
+  opts: {
+    filter?: string;
+    dlq?: boolean;
+    dlqSubs?: boolean;
+    dlqTopics?: boolean;
+  }
 ): EntityStatus[] {
   // Name filter (glob wildcards) — applied first
   if (opts.filter) {
@@ -160,7 +165,10 @@ export const statusCommand = new Command("status")
   .description("Show queue/topic health overview")
   .option("--json", "Output as JSON")
   .option("--sort <field>", "Sort by field: name, active, dlq, scheduled")
-  .option("--filter <pattern>", "Filter entities by name (glob wildcards, e.g. \"*dev*\")")
+  .option(
+    "--filter <pattern>",
+    'Filter entities by name (glob wildcards, e.g. "*dev*")'
+  )
   .option("--dlq", "Show only entities with dead-letter messages")
   .option(
     "--dlq-subs",
@@ -202,9 +210,7 @@ export const statusCommand = new Command("status")
 
       if (opts.watch !== undefined && opts.watch !== false) {
         const interval =
-          typeof opts.watch === "string"
-            ? Number.parseInt(opts.watch, 10)
-            : 5;
+          typeof opts.watch === "string" ? Number.parseInt(opts.watch, 10) : 5;
         const intervalMs = interval * 1000;
 
         while (true) {

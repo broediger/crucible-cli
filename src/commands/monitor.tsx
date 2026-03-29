@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { render, Text, Box, useApp, useInput } from "ink";
 import { Command } from "commander";
-import {
-  ServiceBusAdministrationClient,
-} from "@azure/service-bus";
+import { ServiceBusAdministrationClient } from "@azure/service-bus";
 import { createClients } from "../lib/client.js";
 
 interface EntityRow {
@@ -151,14 +149,22 @@ function Dashboard({ admin, intervalMs, entityFilter }: DashboardProps) {
 
       {/* Rows */}
       {entities.map((e) => {
-        const dlqColor =
-          e.dlq > 10 ? "red" : e.dlq > 0 ? "yellow" : "green";
-        const growing =
-          e.prevDlq !== undefined && e.dlq > e.prevDlq;
-        const shrinking =
-          e.prevDlq !== undefined && e.dlq < e.prevDlq;
-        const trend = growing ? "^ UP" : shrinking ? "v DN" : "";
-        const trendColor = growing ? "red" : shrinking ? "green" : undefined;
+        let dlqColor: string = "green";
+        if (e.dlq > 10) dlqColor = "red";
+        else if (e.dlq > 0) dlqColor = "yellow";
+
+        const growing = e.prevDlq !== undefined && e.dlq > e.prevDlq;
+        const shrinking = e.prevDlq !== undefined && e.dlq < e.prevDlq;
+
+        let trend = "";
+        let trendColor: string | undefined;
+        if (growing) {
+          trend = "^ UP";
+          trendColor = "red";
+        } else if (shrinking) {
+          trend = "v DN";
+          trendColor = "green";
+        }
 
         return (
           <Box key={e.name}>
@@ -188,9 +194,7 @@ function Dashboard({ admin, intervalMs, entityFilter }: DashboardProps) {
         );
       })}
 
-      {entities.length === 0 && !error && (
-        <Text dimColor>Loading...</Text>
-      )}
+      {entities.length === 0 && !error && <Text dimColor>Loading...</Text>}
     </Box>
   );
 }
@@ -201,11 +205,7 @@ export const monitorCommand = new Command("monitor")
   .option("--interval <seconds>", "Poll interval in seconds", "5")
   .option("--namespace <fqdn>", "Override namespace")
   .action(
-    async (opts: {
-      entity?: string;
-      interval: string;
-      namespace?: string;
-    }) => {
+    async (opts: { entity?: string; interval: string; namespace?: string }) => {
       const { admin } = await createClients(opts.namespace);
       const intervalMs = Number.parseInt(opts.interval, 10) * 1000;
 

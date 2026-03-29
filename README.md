@@ -52,23 +52,31 @@ crucible inspect my-queue --seq 12345
 crucible search my-queue --body "OrderId:123"
 crucible search my-queue --property "CorrelationId=abc"
 
-# Dead-letter management
+# Dead-letter management (queues)
 crucible deadletter my-queue --reasons
 crucible replay my-queue --dry-run
 crucible replay my-queue --count 10 --backup before-replay.json
 crucible purge my-queue --dlq
 
+# Dead-letter management (topic subscriptions)
+crucible deadletter my-topic/my-sub --reasons
+crucible replay my-topic/my-sub --dry-run
+crucible purge my-topic/my-sub --dlq
+
 # Send messages
 crucible send my-queue --body '{"orderId": 123}'
+crucible send my-topic/my-sub --body '{"event": "retry"}'
 crucible send my-queue --file payload.json --count 100 --delay 50
 
 # Export / Import
 crucible export my-queue --dlq --format json > dlq-messages.json
+crucible export my-topic/my-sub --dlq --format json > dlq-messages.json
 crucible export my-queue --format csv > messages.csv
 crucible import my-queue --file dlq-messages.json
 
 # Namespace topology
 crucible topology                # tree view
+crucible topology --rules        # include filter expressions
 crucible topology --format mermaid > topology.md
 
 # Snapshot & drift detection
@@ -84,6 +92,17 @@ crucible costs --optimize        # surface unused queues, DLQ issues
 crucible watch my-queue --dlq-threshold 10 --notify
 crucible watch my-queue --dlq-threshold 100 --exec 'curl -X POST https://hooks.slack.com/... -d "{\"text\":\"DLQ alert: $CRUCIBLE_ENTITY has $CRUCIBLE_DLQ messages\"}"'
 ```
+
+## Entity Format
+
+Most commands accept an `<entity>` argument. Use the queue name for queues, or `topic/subscription` for topic subscriptions:
+
+| Format | Target |
+|---|---|
+| `my-queue` | Queue named `my-queue` |
+| `my-topic/my-sub` | Subscription `my-sub` on topic `my-topic` |
+
+For example, `crucible deadletter my-queue` targets a queue's DLQ, while `crucible deadletter my-topic/my-sub` targets the subscription's DLQ.
 
 ## Commands
 
@@ -112,7 +131,7 @@ crucible watch my-queue --dlq-threshold 100 --exec 'curl -X POST https://hooks.s
 | `crucible watch` | Local DLQ alerts — `--dlq-threshold`, `--exec`, `--notify` |
 | `crucible export` | Export messages as JSON or CSV (pipe-friendly) |
 | `crucible import` | Bulk send from JSON file |
-| `crucible topology` | Namespace tree — `--format tree\|json\|mermaid` |
+| `crucible topology` | Namespace tree — `--format tree\|json\|mermaid`, `--rules` to show filter expressions |
 
 ### Power Features
 | Command | Description |

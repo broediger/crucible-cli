@@ -8,7 +8,10 @@ export const replayCommand = new Command("replay")
   .description("Replay dead-letter messages back to the source queue")
   .argument("<entity>", "Queue name or topic/subscription")
   .option("--count <number>", "Number of messages to replay")
-  .option("--filter <expr>", 'Filter by DLQ reason (e.g., "reason=MaxDeliveryCountExceeded")')
+  .option(
+    "--filter <expr>",
+    'Filter by DLQ reason (e.g., "reason=MaxDeliveryCountExceeded")'
+  )
   .option("--dry-run", "Show what would be replayed without doing it")
   .option("--to <entity>", "Replay to a different destination")
   .option("--backup <file>", "Save messages to JSON file before replaying")
@@ -43,7 +46,9 @@ export const replayCommand = new Command("replay")
       const sender = client.createSender(dest.queue ?? dest.topic!);
 
       try {
-        const maxCount = opts.count ? Number.parseInt(opts.count, 10) : undefined;
+        const maxCount = opts.count
+          ? Number.parseInt(opts.count, 10)
+          : undefined;
         const messages = await receiver.receiveMessages(maxCount ?? 100, {
           maxWaitTimeInMs: 5000,
         });
@@ -74,7 +79,9 @@ export const replayCommand = new Command("replay")
             "utf-8"
           );
           console.log(
-            chalk.green(`Backed up ${backupData.length} messages to ${opts.backup}`)
+            chalk.green(
+              `Backed up ${backupData.length} messages to ${opts.backup}`
+            )
           );
         }
 
@@ -92,7 +99,9 @@ export const replayCommand = new Command("replay")
 
           if (opts.dryRun) {
             console.log(
-              chalk.dim(`[dry-run] Would replay Seq: ${m.sequenceNumber} — ${m.deadLetterReason}`)
+              chalk.dim(
+                `[dry-run] Would replay Seq: ${m.sequenceNumber} — ${m.deadLetterReason}`
+              )
             );
             await receiver.abandonMessage(m);
             replayed++;
@@ -112,9 +121,15 @@ export const replayCommand = new Command("replay")
 
         const target = opts.to ?? entity;
         if (opts.dryRun) {
-          console.log(chalk.yellow(`\nDry run: ${replayed} messages would be replayed to ${target}`));
+          console.log(
+            chalk.yellow(
+              `\nDry run: ${replayed} messages would be replayed to ${target}`
+            )
+          );
         } else {
-          console.log(chalk.green(`Replayed ${replayed} messages to ${target}`));
+          console.log(
+            chalk.green(`Replayed ${replayed} messages to ${target}`)
+          );
         }
         if (skipped > 0) {
           console.log(chalk.dim(`Skipped ${skipped} (filtered out)`));

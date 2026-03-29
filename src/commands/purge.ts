@@ -67,7 +67,9 @@ export const purgeCommand = new Command("purge")
         // Confirmation prompt
         if (!opts.yes) {
           const ok = await confirm(
-            chalk.red(`Permanently delete all ${label} messages from ${entity}?`)
+            chalk.red(
+              `Permanently delete all ${label} messages from ${entity}?`
+            )
           );
           if (!ok) {
             console.log(chalk.dim("Aborted"));
@@ -97,7 +99,9 @@ export const purgeCommand = new Command("purge")
             "utf-8"
           );
           console.log(
-            chalk.green(`Backed up ${backupData.length} messages to ${opts.backup}`)
+            chalk.green(
+              `Backed up ${backupData.length} messages to ${opts.backup}`
+            )
           );
         }
 

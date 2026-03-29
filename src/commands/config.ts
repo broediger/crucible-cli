@@ -11,37 +11,40 @@ configCommand
   .description("Add a namespace profile")
   .option("--connection-string <string>", "Service Bus connection string")
   .option("--namespace <fqdn>", "Service Bus namespace FQDN (for Entra ID)")
-  .action(async (name: string, opts: { connectionString?: string; namespace?: string }) => {
-    if (!opts.connectionString && !opts.namespace) {
-      console.error(
-        chalk.red("Provide --connection-string or --namespace")
-      );
-      process.exit(1);
+  .action(
+    async (
+      name: string,
+      opts: { connectionString?: string; namespace?: string }
+    ) => {
+      if (!opts.connectionString && !opts.namespace) {
+        console.error(chalk.red("Provide --connection-string or --namespace"));
+        process.exit(1);
+      }
+
+      const config = await loadConfig();
+      const existing = config.profiles.findIndex((p) => p.name === name);
+
+      const profile = {
+        name,
+        connectionString: opts.connectionString,
+        namespace: opts.namespace,
+      };
+
+      if (existing >= 0) {
+        config.profiles[existing] = profile;
+        console.log(chalk.yellow(`Updated profile "${name}"`));
+      } else {
+        config.profiles.push(profile);
+        console.log(chalk.green(`Added profile "${name}"`));
+      }
+
+      if (config.profiles.length === 1) {
+        config.activeProfile = name;
+      }
+
+      await saveConfig(config);
     }
-
-    const config = await loadConfig();
-    const existing = config.profiles.findIndex((p) => p.name === name);
-
-    const profile = {
-      name,
-      connectionString: opts.connectionString,
-      namespace: opts.namespace,
-    };
-
-    if (existing >= 0) {
-      config.profiles[existing] = profile;
-      console.log(chalk.yellow(`Updated profile "${name}"`));
-    } else {
-      config.profiles.push(profile);
-      console.log(chalk.green(`Added profile "${name}"`));
-    }
-
-    if (config.profiles.length === 1) {
-      config.activeProfile = name;
-    }
-
-    await saveConfig(config);
-  });
+  );
 
 configCommand
   .command("list")
@@ -50,7 +53,9 @@ configCommand
     const config = await loadConfig();
 
     if (config.profiles.length === 0) {
-      console.log(chalk.dim("No profiles configured. Run: crucible config add <name>"));
+      console.log(
+        chalk.dim("No profiles configured. Run: crucible config add <name>")
+      );
       return;
     }
 

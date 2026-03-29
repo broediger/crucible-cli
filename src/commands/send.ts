@@ -90,7 +90,9 @@ export const sendCommand = new Command("send")
         const target = queue ?? topic!;
         if (opts.schedule) {
           console.log(
-            chalk.green(`Scheduled ${count} message(s) to ${target} for ${opts.schedule}`)
+            chalk.green(
+              `Scheduled ${count} message(s) to ${target} for ${opts.schedule}`
+            )
           );
         } else {
           console.log(chalk.green(`Sent ${count} message(s) to ${target}`));
