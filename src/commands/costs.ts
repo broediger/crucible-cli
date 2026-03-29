@@ -67,7 +67,9 @@ async function gatherQueueCosts(
   for await (const queue of admin.listQueues()) {
     const rt = await admin.getQueueRuntimeProperties(queue.name);
     const totalMessages =
-      rt.activeMessageCount + rt.deadLetterMessageCount + rt.scheduledMessageCount;
+      rt.activeMessageCount +
+      rt.deadLetterMessageCount +
+      rt.scheduledMessageCount;
     const estimatedOpsPerDay = Math.max(totalMessages * 10, 100);
 
     entities.push({

@@ -1,6 +1,9 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import type { ServiceBusReceivedMessage, ServiceBusClient } from "@azure/service-bus";
+import type {
+  ServiceBusReceivedMessage,
+  ServiceBusClient,
+} from "@azure/service-bus";
 import { createClients } from "../lib/client.js";
 import { parseEntity } from "../lib/entity.js";
 
@@ -81,7 +84,11 @@ function renderMessage(m: ServiceBusReceivedMessage): void {
 }
 
 function renderApplicationProperties(m: ServiceBusReceivedMessage): void {
-  if (!m.applicationProperties || Object.keys(m.applicationProperties).length === 0) return;
+  if (
+    !m.applicationProperties ||
+    Object.keys(m.applicationProperties).length === 0
+  )
+    return;
   console.log();
   console.log(chalk.bold("Application Properties:"));
   for (const [key, val] of Object.entries(m.applicationProperties)) {

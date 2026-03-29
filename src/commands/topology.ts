@@ -47,13 +47,24 @@ function isSqlFilter(f: unknown): f is SqlRuleFilter {
 }
 
 function isCorrelationFilter(f: unknown): f is CorrelationRuleFilter {
-  return typeof f === "object" && f !== null &&
-    ("correlationId" in f || "label" in f || "contentType" in f || "properties" in f);
+  return (
+    typeof f === "object" &&
+    f !== null &&
+    ("correlationId" in f ||
+      "label" in f ||
+      "contentType" in f ||
+      "properties" in f)
+  );
 }
 
 const CORRELATION_FIELDS: (keyof CorrelationRuleFilter)[] = [
-  "correlationId", "messageId", "to", "replyTo",
-  "label", "sessionId", "contentType",
+  "correlationId",
+  "messageId",
+  "to",
+  "replyTo",
+  "label",
+  "sessionId",
+  "contentType",
 ];
 
 function formatSqlFilter(f: SqlRuleFilter): string {
@@ -61,9 +72,9 @@ function formatSqlFilter(f: SqlRuleFilter): string {
 }
 
 function formatCorrelationFilter(f: CorrelationRuleFilter): string {
-  const parts: string[] = CORRELATION_FIELDS
-    .filter((k) => f[k])
-    .map((k) => `${k}=${f[k]}`);
+  const parts: string[] = CORRELATION_FIELDS.filter((k) => f[k]).map(
+    (k) => `${k}=${f[k]}`
+  );
 
   const props = f.properties || f.applicationProperties || {};
   for (const [k, v] of Object.entries(props)) {
@@ -81,7 +92,10 @@ function formatFilter(rule: { filter?: unknown }): string {
   return "";
 }
 
-async function fetchTopology(namespace?: string, includeRules?: boolean): Promise<Topology> {
+async function fetchTopology(
+  namespace?: string,
+  includeRules?: boolean
+): Promise<Topology> {
   const { admin } = await createClients(namespace);
   const queues: QueueInfo[] = [];
   const topics: TopicInfo[] = [];
@@ -124,7 +138,11 @@ function treePrefixes(
   };
 }
 
-function renderRulesTree(rules: RuleInfo[], cont: string, showFilter: boolean): void {
+function renderRulesTree(
+  rules: RuleInfo[],
+  cont: string,
+  showFilter: boolean
+): void {
   for (let ri = 0; ri < rules.length; ri++) {
     const rule = rules[ri];
     const r = treePrefixes(cont, ri, rules.length);
@@ -173,7 +191,11 @@ function renderTree(topo: Topology, showRules: boolean): void {
 
 function getRuleLabel(rule: RuleInfo, showFilter: boolean): string | null {
   if (showFilter) {
-    if (rule.name === "$Default" && (!rule.filter || rule.filter === "TrueFilter")) return null;
+    if (
+      rule.name === "$Default" &&
+      (!rule.filter || rule.filter === "TrueFilter")
+    )
+      return null;
     return rule.filter || rule.name;
   }
   if (rule.name === "$Default") return null;
@@ -212,9 +234,7 @@ function sanitize(name: string): string {
 }
 
 export const topologyCommand = new Command("topology")
-  .description(
-    "Show namespace topology (queues, topics, subscriptions, rules)"
-  )
+  .description("Show namespace topology (queues, topics, subscriptions, rules)")
   .option("--format <type>", "Output format: tree, json, mermaid", "tree")
   .option("--rules", "Show filter expressions for each subscription rule")
   .option("--namespace <fqdn>", "Override namespace")

@@ -34,7 +34,9 @@ export const deadletterCommand = new Command("deadletter")
           });
 
       try {
-        const messages = await receiver.peekMessages(Number.parseInt(opts.count, 10));
+        const messages = await receiver.peekMessages(
+          Number.parseInt(opts.count, 10)
+        );
 
         if (messages.length === 0) {
           console.log(chalk.green("No dead-letter messages"));
@@ -53,9 +55,15 @@ export const deadletterCommand = new Command("deadletter")
             return;
           }
 
-          console.log(chalk.bold(`Dead-letter reasons (${messages.length} messages):\n`));
-          for (const [reason, count] of [...reasons.entries()].sort((a, b) => b[1] - a[1])) {
-            console.log(`  ${chalk.yellow(count.toString().padStart(4))}  ${reason}`);
+          console.log(
+            chalk.bold(`Dead-letter reasons (${messages.length} messages):\n`)
+          );
+          for (const [reason, count] of [...reasons.entries()].sort(
+            (a, b) => b[1] - a[1]
+          )) {
+            console.log(
+              `  ${chalk.yellow(count.toString().padStart(4))}  ${reason}`
+            );
           }
           return;
         }

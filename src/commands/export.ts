@@ -72,9 +72,7 @@ export const exportCommand = new Command("export")
 
           for (const r of rows) {
             const bodyStr =
-              typeof r.body === "string"
-                ? r.body
-                : JSON.stringify(r.body);
+              typeof r.body === "string" ? r.body : JSON.stringify(r.body);
             const fields = [
               r.sequenceNumber,
               r.messageId,
@@ -102,9 +100,7 @@ export const exportCommand = new Command("export")
           console.log(JSON.stringify(rows, null, 2));
         }
 
-        console.error(
-          chalk.dim(`Exported ${rows.length} messages`)
-        );
+        console.error(chalk.dim(`Exported ${rows.length} messages`));
       } finally {
         await receiver.close();
         await client.close();

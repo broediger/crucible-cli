@@ -86,8 +86,12 @@ function diffQueues(
   before: QueueSnapshot[],
   after: QueueSnapshot[]
 ): DiffEntry[] {
-  return diffNamedEntities("queue", before, after, (q) => q.name, (path, b, a) =>
-    diffProperties(path, b, a, ["name"])
+  return diffNamedEntities(
+    "queue",
+    before,
+    after,
+    (q) => q.name,
+    (path, b, a) => diffProperties(path, b, a, ["name"])
   );
 }
 
@@ -95,10 +99,16 @@ function diffTopics(
   before: TopicSnapshot[],
   after: TopicSnapshot[]
 ): DiffEntry[] {
-  return diffNamedEntities("topic", before, after, (t) => t.name, (path, b, a) => [
-    ...diffProperties(path, b, a, ["name", "subscriptions"]),
-    ...diffSubscriptions(b.name, b.subscriptions, a.subscriptions),
-  ]);
+  return diffNamedEntities(
+    "topic",
+    before,
+    after,
+    (t) => t.name,
+    (path, b, a) => [
+      ...diffProperties(path, b, a, ["name", "subscriptions"]),
+      ...diffSubscriptions(b.name, b.subscriptions, a.subscriptions),
+    ]
+  );
 }
 
 function diffSubscriptions(
@@ -167,9 +177,15 @@ export const diffCommand = new Command("diff")
     "Compare current namespace state against a snapshot file, or compare two namespaces"
   )
   .argument("<a>", "Snapshot file or namespace FQDN")
-  .argument("[b]", "Second namespace FQDN (for namespace-to-namespace comparison)")
+  .argument(
+    "[b]",
+    "Second namespace FQDN (for namespace-to-namespace comparison)"
+  )
   .option("--json", "Output as JSON")
-  .option("--namespace <fqdn>", "Override namespace (when comparing against a snapshot file)")
+  .option(
+    "--namespace <fqdn>",
+    "Override namespace (when comparing against a snapshot file)"
+  )
   .action(
     async (
       a: string,

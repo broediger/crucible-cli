@@ -53,7 +53,9 @@ export const importCommand = new Command("import")
             correlationId: m.correlationId,
             contentType: m.contentType,
             subject: m.subject,
-            applicationProperties: m.applicationProperties as Record<string, string | number | boolean> | undefined,
+            applicationProperties: m.applicationProperties as
+              | Record<string, string | number | boolean>
+              | undefined,
           });
           sent++;
 

@@ -67,13 +67,18 @@ async function sendNotification(
 }
 
 export const watchCommand = new Command("watch")
-  .description("Watch entity DLQ count and trigger alerts when threshold is exceeded")
+  .description(
+    "Watch entity DLQ count and trigger alerts when threshold is exceeded"
+  )
   .argument("<entity>", "Queue name or topic/subscription")
   .requiredOption(
     "--dlq-threshold <number>",
     "DLQ count threshold to trigger alert"
   )
-  .option("--exec <command>", "Shell command to execute when threshold is crossed (use $CRUCIBLE_ENTITY, $CRUCIBLE_DLQ, $CRUCIBLE_THRESHOLD)")
+  .option(
+    "--exec <command>",
+    "Shell command to execute when threshold is crossed (use $CRUCIBLE_ENTITY, $CRUCIBLE_DLQ, $CRUCIBLE_THRESHOLD)"
+  )
   .option("--notify", "Send desktop notification when threshold is crossed")
   .option("--interval <seconds>", "Poll interval in seconds", "30")
   .option("--namespace <fqdn>", "Override namespace")
@@ -114,18 +119,26 @@ export const watchCommand = new Command("watch")
           if (dlqCount >= threshold && !inAlert) {
             inAlert = true;
             console.log(
-              chalk.red(`[${now}] ALERT: ${entity} DLQ count ${dlqCount} >= threshold ${threshold}`)
+              chalk.red(
+                `[${now}] ALERT: ${entity} DLQ count ${dlqCount} >= threshold ${threshold}`
+              )
             );
-            if (opts.exec) runExecCommand(opts.exec, entity, dlqCount, threshold);
-            if (opts.notify) await sendNotification(entity, dlqCount, threshold);
+            if (opts.exec)
+              runExecCommand(opts.exec, entity, dlqCount, threshold);
+            if (opts.notify)
+              await sendNotification(entity, dlqCount, threshold);
           } else if (dlqCount < threshold && inAlert) {
             inAlert = false;
             console.log(
-              chalk.green(`[${now}] RESOLVED: ${entity} DLQ count ${dlqCount} < threshold ${threshold}`)
+              chalk.green(
+                `[${now}] RESOLVED: ${entity} DLQ count ${dlqCount} < threshold ${threshold}`
+              )
             );
           } else {
             console.log(
-              chalk.dim(`[${now}] ${entity} DLQ: ${dlqCount}${inAlert ? " (in alert)" : ""}`)
+              chalk.dim(
+                `[${now}] ${entity} DLQ: ${dlqCount}${inAlert ? " (in alert)" : ""}`
+              )
             );
           }
         } catch (err: unknown) {

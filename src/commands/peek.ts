@@ -34,7 +34,9 @@ export const peekCommand = new Command("peek")
           });
 
       try {
-        const messages = await receiver.peekMessages(Number.parseInt(opts.count, 10));
+        const messages = await receiver.peekMessages(
+          Number.parseInt(opts.count, 10)
+        );
 
         if (messages.length === 0) {
           console.log(chalk.dim("No messages found"));
@@ -59,13 +61,21 @@ export const peekCommand = new Command("peek")
         for (const m of messages) {
           console.log(chalk.bold(`--- Seq: ${m.sequenceNumber} ---`));
           if (m.enqueuedTimeUtc) {
-            console.log(chalk.dim(`Enqueued: ${m.enqueuedTimeUtc.toISOString()}`));
+            console.log(
+              chalk.dim(`Enqueued: ${m.enqueuedTimeUtc.toISOString()}`)
+            );
           }
           if (m.deadLetterReason) {
             console.log(chalk.red(`DLQ Reason: ${m.deadLetterReason}`));
           }
-          if (m.applicationProperties && Object.keys(m.applicationProperties).length > 0) {
-            console.log(chalk.cyan("Properties:"), JSON.stringify(m.applicationProperties));
+          if (
+            m.applicationProperties &&
+            Object.keys(m.applicationProperties).length > 0
+          ) {
+            console.log(
+              chalk.cyan("Properties:"),
+              JSON.stringify(m.applicationProperties)
+            );
           }
           const body =
             typeof m.body === "string"
