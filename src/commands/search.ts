@@ -61,16 +61,14 @@ export const searchCommand = new Command("search")
         const batchSize = 100;
         const matches: ServiceBusReceivedMessage[] = [];
         let scanned = 0;
-        let fromSequenceNumber: bigint | undefined;
+        let peekOptions: { fromSequenceNumber?: never } = {};
 
         // Peek in batches to reliably scan beyond single-call limits
         while (scanned < scanCount) {
           const remaining = scanCount - scanned;
           const batch = await receiver.peekMessages(
             Math.min(batchSize, remaining),
-            fromSequenceNumber !== undefined
-              ? { fromSequenceNumber: fromSequenceNumber as never }
-              : undefined
+            peekOptions
           );
 
           if (batch.length === 0) break;
@@ -104,8 +102,11 @@ export const searchCommand = new Command("search")
           scanned += batch.length;
           // Next batch starts after the last message's sequence number
           const lastSeq = batch[batch.length - 1].sequenceNumber;
-          fromSequenceNumber =
-            lastSeq !== undefined ? BigInt(lastSeq.toString()) + 1n : undefined;
+          if (lastSeq !== undefined) {
+            peekOptions = {
+              fromSequenceNumber: (BigInt(lastSeq.toString()) + 1n) as never,
+            };
+          }
         }
 
         if (matches.length === 0) {
