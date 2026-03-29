@@ -73,7 +73,7 @@ function formatSqlFilter(f: SqlRuleFilter): string {
 
 function formatCorrelationFilter(f: CorrelationRuleFilter): string {
   const parts: string[] = CORRELATION_FIELDS.filter((k) => f[k]).map(
-    (k) => `${k}=${f[k]}`
+    (k) => `${k}=${String(f[k])}`
   );
 
   const props = f.properties || f.applicationProperties || {};

@@ -88,11 +88,11 @@ export const searchCommand = new Command("search")
             // Property filter
             if (isMatch && propKey && propValue) {
               const props = m.applicationProperties;
-              if (!props) {
-                isMatch = false;
-              } else {
+              if (props) {
                 const val = String(props[propKey] ?? "");
                 if (val !== propValue) isMatch = false;
+              } else {
+                isMatch = false;
               }
             }
 
