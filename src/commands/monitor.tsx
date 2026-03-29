@@ -149,11 +149,22 @@ function Dashboard({ admin, intervalMs, entityFilter }: DashboardProps) {
 
       {/* Rows */}
       {entities.map((e) => {
-        const dlqColor = e.dlq > 10 ? "red" : e.dlq > 0 ? "yellow" : "green";
+        let dlqColor: string = "green";
+        if (e.dlq > 10) dlqColor = "red";
+        else if (e.dlq > 0) dlqColor = "yellow";
+
         const growing = e.prevDlq !== undefined && e.dlq > e.prevDlq;
         const shrinking = e.prevDlq !== undefined && e.dlq < e.prevDlq;
-        const trend = growing ? "^ UP" : shrinking ? "v DN" : "";
-        const trendColor = growing ? "red" : shrinking ? "green" : undefined;
+
+        let trend = "";
+        let trendColor: string | undefined;
+        if (growing) {
+          trend = "^ UP";
+          trendColor = "red";
+        } else if (shrinking) {
+          trend = "v DN";
+          trendColor = "green";
+        }
 
         return (
           <Box key={e.name}>
