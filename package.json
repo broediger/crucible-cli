@@ -1,6 +1,6 @@
 {
   "name": "crucible-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The kubectl of Azure Service Bus — CLI for message operations, DLQ management, and namespace monitoring",
   "type": "module",
   "bin": {
