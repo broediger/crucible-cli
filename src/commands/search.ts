@@ -1,3 +1,4 @@
+import type { ServiceBusReceivedMessage } from "@azure/service-bus";
 import { Command } from "commander";
 import chalk from "chalk";
 import { createClients } from "../lib/client.js";
@@ -7,10 +8,7 @@ export const searchCommand = new Command("search")
   .description("Search messages by body content or application properties")
   .argument("<entity>", "Queue name or topic/subscription")
   .option("--body <text>", "Search for text in message body")
-  .option(
-    "--property <kv>",
-    "Match application property (key=value)"
-  )
+  .option("--property <kv>", "Match application property (key=value)")
   .option("--dlq", "Search dead-letter queue")
   .option("--count <number>", "Max messages to scan", "100")
   .option("--format <type>", "Output format: json, table", "table")
@@ -51,9 +49,7 @@ export const searchCommand = new Command("search")
       if (opts.property) {
         const eqIdx = opts.property.indexOf("=");
         if (eqIdx < 0) {
-          console.error(
-            chalk.red("--property must be key=value format")
-          );
+          console.error(chalk.red("--property must be key=value format"));
           process.exit(1);
         }
         propKey = opts.property.slice(0, eqIdx);
@@ -62,47 +58,66 @@ export const searchCommand = new Command("search")
 
       try {
         const scanCount = Number.parseInt(opts.count, 10);
-        const messages = await receiver.peekMessages(scanCount);
+        const batchSize = 100;
+        const matches: ServiceBusReceivedMessage[] = [];
+        let scanned = 0;
+        let fromSequenceNumber: bigint | undefined;
 
-        const matches = messages.filter((m) => {
-          // Body filter (case-insensitive substring match)
-          if (opts.body) {
-            const bodyStr =
-              typeof m.body === "string"
-                ? m.body
-                : JSON.stringify(m.body);
-            if (
-              !bodyStr
-                .toLowerCase()
-                .includes(opts.body.toLowerCase())
-            ) {
-              return false;
+        // Peek in batches to reliably scan beyond single-call limits
+        while (scanned < scanCount) {
+          const remaining = scanCount - scanned;
+          const batch = await receiver.peekMessages(
+            Math.min(batchSize, remaining),
+            fromSequenceNumber !== undefined
+              ? { fromSequenceNumber: fromSequenceNumber as never }
+              : undefined
+          );
+
+          if (batch.length === 0) break;
+
+          for (const m of batch) {
+            let isMatch = true;
+
+            // Body filter (case-insensitive substring match)
+            if (opts.body) {
+              const bodyStr =
+                typeof m.body === "string" ? m.body : JSON.stringify(m.body);
+              if (!bodyStr.toLowerCase().includes(opts.body.toLowerCase())) {
+                isMatch = false;
+              }
             }
+
+            // Property filter
+            if (isMatch && propKey && propValue) {
+              const props = m.applicationProperties;
+              if (!props) {
+                isMatch = false;
+              } else {
+                const val = String(props[propKey] ?? "");
+                if (val !== propValue) isMatch = false;
+              }
+            }
+
+            if (isMatch) matches.push(m);
           }
 
-          // Property filter
-          if (propKey && propValue) {
-            const props = m.applicationProperties;
-            if (!props) return false;
-            const val = String(props[propKey] ?? "");
-            if (val !== propValue) return false;
-          }
-
-          return true;
-        });
+          scanned += batch.length;
+          // Next batch starts after the last message's sequence number
+          const lastSeq = batch[batch.length - 1].sequenceNumber;
+          fromSequenceNumber =
+            lastSeq !== undefined ? BigInt(lastSeq.toString()) + 1n : undefined;
+        }
 
         if (matches.length === 0) {
           console.log(
-            chalk.dim(
-              `No matches found (scanned ${messages.length} messages)`
-            )
+            chalk.dim(`No matches found (scanned ${scanned} messages)`)
           );
           return;
         }
 
         console.log(
           chalk.dim(
-            `${matches.length} match(es) found (scanned ${messages.length} messages)\n`
+            `${matches.length} match(es) found (scanned ${scanned} messages)\n`
           )
         );
 
