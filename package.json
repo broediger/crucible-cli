@@ -4,7 +4,7 @@
   "description": "The kubectl of Azure Service Bus — CLI for message operations, DLQ management, and namespace monitoring",
   "type": "module",
   "bin": {
-    "crucible": "./dist/cli.js"
+    "crucible": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/broediger/crucible-cli.git"
+    "url": "git+https://github.com/broediger/crucible-cli.git"
   },
   "homepage": "https://github.com/broediger/crucible-cli",
   "bugs": {
