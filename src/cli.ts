@@ -60,7 +60,13 @@ program.addCommand(costsCommand);
 // --- Global error handler ---
 // Exit codes: 0 = success, 1 = error, 2 = warning/threshold (set by commands like diff)
 process.on("unhandledRejection", (err: unknown) => {
-  const msg = err instanceof Error ? err.message : String(err);
+  let msg: string;
+  if (err instanceof AggregateError && err.errors.length > 0) {
+    const unique = [...new Set(err.errors.map((e: Error) => e.message))];
+    msg = unique.join("\n");
+  } else {
+    msg = err instanceof Error ? err.message : String(err);
+  }
   console.error(`Error: ${msg}`);
   process.exit(1);
 });
