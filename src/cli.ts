@@ -1,4 +1,8 @@
+import { createRequire } from "node:module";
 import { Command } from "commander";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
 import { configCommand } from "./commands/config.js";
 import { loginCommand } from "./commands/login.js";
 import { statusCommand } from "./commands/status.js";
@@ -25,7 +29,7 @@ program
   .description(
     "The kubectl of Azure Service Bus — message operations, DLQ management, and namespace monitoring"
   )
-  .version("0.1.0");
+  .version(version);
 
 // --- Phase 1: Foundation ---
 program.addCommand(configCommand);
@@ -56,7 +60,13 @@ program.addCommand(costsCommand);
 // --- Global error handler ---
 // Exit codes: 0 = success, 1 = error, 2 = warning/threshold (set by commands like diff)
 process.on("unhandledRejection", (err: unknown) => {
-  const msg = err instanceof Error ? err.message : String(err);
+  let msg: string;
+  if (err instanceof AggregateError && err.errors.length > 0) {
+    const unique = [...new Set(err.errors.map((e: Error) => e.message))];
+    msg = unique.join("\n");
+  } else {
+    msg = err instanceof Error ? err.message : String(err);
+  }
   console.error(`Error: ${msg}`);
   process.exit(1);
 });
