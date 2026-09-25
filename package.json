@@ -42,7 +42,7 @@
     "url": "https://github.com/broediger/crucible-cli/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "@azure/identity": "^4.6.0",
