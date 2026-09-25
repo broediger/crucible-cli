@@ -54,8 +54,7 @@ export const importCommand = new Command("import")
             contentType: m.contentType,
             subject: m.subject,
             applicationProperties: m.applicationProperties as
-              | Record<string, string | number | boolean>
-              | undefined,
+              Record<string, string | number | boolean> | undefined,
           });
           sent++;
 
