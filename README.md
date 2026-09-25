@@ -6,7 +6,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/crucible-cli)](https://www.npmjs.com/package/crucible-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](package.json)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/broediger/crucible-cli/pulls)
 
 The `kubectl` of Azure Service Bus — CLI for message operations, DLQ management, and namespace monitoring.
